@@ -1,0 +1,6 @@
+{
+  "name": "Muhlenbruch Insurance",
+  "description": "A world-class premium corporate and high-net-worth private insurance platform for Muhlenbruch Insurance, featuring interactive coverage explorers, historical legacy records, policyholder dashboard simulators, and a custom Gemini-powered Digital Underwriting Advisor.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

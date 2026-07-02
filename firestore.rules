@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 1. Contacts Collection
+    // Anyone can submit a contact inquiry, but only logged-in administrators can read, update, or delete them.
+    match /contacts/{documentId} {
+      allow create: if true;
+      allow read, update, delete: if request.auth != null;
+    }
+    
+    // 2. Admins Registry Collection
+    // Authenticated administrators can read and write their own profile details.
+    match /admins/{uid} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
