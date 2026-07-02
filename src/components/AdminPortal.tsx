@@ -3,10 +3,10 @@ import { motion, AnimatePresence } from "motion/react";
 import { 
   Lock, Mail, KeyRound, Shield, ShieldCheck, Trash2, 
   Inbox, CheckCircle2, Clock, User, Users, LogOut, 
-  AlertTriangle, Search, Filter, FileText, X, ChevronRight, Eye
+  AlertTriangle, Search, Filter, FileText, X, ChevronRight, Eye, Database
 } from "lucide-react";
 import { 
-  checkFirebaseStatus,
+  checkSupabaseStatus,
   getContactMessages,
   updateContactStatus,
   deleteContactMessage,
@@ -15,7 +15,7 @@ import {
   signUpAdmin,
   logoutUser,
   onAuthStateListener
-} from "../lib/firebase";
+} from "../lib/supabase";
 
 interface ContactMsg {
   id: string;
@@ -89,7 +89,7 @@ export default function AdminPortal({ onClose }: { onClose: () => void }) {
       const fetchedAdmins = await getAdminsList();
       setAdmins(fetchedAdmins);
     } catch (err) {
-      console.error("Error fetching dashboard data:", err);
+      console.warn("Error fetching dashboard data:", err);
     } finally {
       setLoadingData(false);
     }
@@ -104,7 +104,7 @@ export default function AdminPortal({ onClose }: { onClose: () => void }) {
       const u = await signInAdmin(email, password);
       setUser(u);
     } catch (err: any) {
-      console.error("Login error:", err);
+      console.warn("Login error:", err);
       setAuthError(err.message || "Invalid authentication credentials.");
     } finally {
       setSubmitting(false);
@@ -117,12 +117,12 @@ export default function AdminPortal({ onClose }: { onClose: () => void }) {
     setSubmitting(true);
     setAuthError("");
 
-    const isFirebaseOnline = checkFirebaseStatus().isAvailable;
+    const isSupabaseOnline = checkSupabaseStatus().isAvailable;
     const isCodeValid = securityCode.trim().toUpperCase() === REGISTER_SECURITY_CODE.toUpperCase();
     
-    // Only strictly enforce security code validation if Firebase is fully operational in the cloud.
-    // If running in local ledger mode due to billing constraints, permit any code or no code to unblock the user.
-    if (isFirebaseOnline && !isCodeValid) {
+    // Only strictly enforce security code validation if Supabase is fully operational in the cloud.
+    // If running in local ledger mode, permit any code or no code to unblock the user.
+    if (isSupabaseOnline && !isCodeValid) {
       setAuthError("Unauthorized registration security code. Please check the security key.");
       setSubmitting(false);
       return;
@@ -136,7 +136,7 @@ export default function AdminPortal({ onClose }: { onClose: () => void }) {
       // Instantly trigger dashboard refresh
       fetchDashboardData();
     } catch (err: any) {
-      console.error("Registration error:", err);
+      console.warn("Registration error:", err);
       setAuthError(err.message || "Failed to register administrator.");
     } finally {
       setSubmitting(false);
@@ -151,7 +151,7 @@ export default function AdminPortal({ onClose }: { onClose: () => void }) {
       setContacts([]);
       setAdmins([]);
     } catch (err) {
-      console.error("Logout error:", err);
+      console.warn("Logout error:", err);
     }
   };
 
@@ -166,7 +166,7 @@ export default function AdminPortal({ onClose }: { onClose: () => void }) {
         setSelectedContact(prev => prev ? { ...prev, status: newStatus } : null);
       }
     } catch (err) {
-      console.error("Error updating contact status:", err);
+      console.warn("Error updating contact status:", err);
     }
   };
 
@@ -182,7 +182,7 @@ export default function AdminPortal({ onClose }: { onClose: () => void }) {
         setSelectedContact(null);
       }
     } catch (err) {
-      console.error("Error deleting contact record:", err);
+      console.warn("Error deleting contact record:", err);
     }
   };
 
@@ -257,10 +257,10 @@ export default function AdminPortal({ onClose }: { onClose: () => void }) {
                   }
                 </p>
 
-                {!checkFirebaseStatus().isAvailable && (
+                 {!checkSupabaseStatus().isAvailable && (
                   <div className="mt-4 p-3 bg-amber-950/25 border border-amber-800/40 text-[#A89E8D] text-[11px] font-sans leading-relaxed text-left rounded-none">
                     <span className="font-bold text-white uppercase block mb-1">Local Secure Ledger Mode</span>
-                    Firebase has been set to offline because Google Cloud billing is required or Firestore is not yet activated on your project.
+                    Supabase connection is not fully configured, or tables are missing in your project.
                     <span className="text-white block mt-2 font-bold uppercase text-[9px] tracking-wider">Demo Credentials:</span>
                     <div className="mt-1 font-mono text-[10px] space-y-1 text-white bg-black/40 p-2 border border-[#323436]">
                       <div>Email: <span className="text-amber-300">v.muhlenbruch@muhlenbruch-insurance.com</span></div>
@@ -350,7 +350,7 @@ export default function AdminPortal({ onClose }: { onClose: () => void }) {
                       className="w-full bg-[#0F1113] text-[#F4F1EA] border border-[#323436] p-3 focus:outline-none focus:border-[#A89E8D] font-mono text-center tracking-widest text-[11px]"
                     />
                     <p className="text-[9px] text-[#A89E8D]/50 mt-1">
-                      {checkFirebaseStatus().isAvailable 
+                      {checkSupabaseStatus().isAvailable 
                         ? "Required for cloud authorization." 
                         : "Optional in Local Ledger mode (click Auto-Fill or type any value)."
                       }
@@ -465,6 +465,20 @@ export default function AdminPortal({ onClose }: { onClose: () => void }) {
                       {admins.length}
                     </span>
                   </button>
+
+                  <button
+                    onClick={() => { setCurrentTab("supabase"); setSelectedContact(null); }}
+                    className={`w-full flex items-center justify-between px-3 py-3 font-heading font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer ${
+                      currentTab === "supabase"
+                        ? "bg-[#A89E8D] text-[#0F1113]"
+                        : "text-[#A89E8D] hover:bg-[#141618] hover:text-[#F4F1EA]"
+                    }`}
+                  >
+                    <div className="flex items-center space-x-2.5">
+                      <Database className="w-4 h-4" />
+                      <span>Supabase Config</span>
+                    </div>
+                  </button>
                 </div>
 
                 {/* Live Stats block */}
@@ -472,8 +486,8 @@ export default function AdminPortal({ onClose }: { onClose: () => void }) {
                   <span className="block uppercase tracking-wider text-[8px] text-[#A89E8D]/40">Active Telemetry</span>
                   <div className="flex justify-between">
                     <span>LEDGER SYSTEM:</span>
-                    {checkFirebaseStatus().isAvailable ? (
-                      <span className="text-green-400 font-bold uppercase">CLOUD FIRESTORE</span>
+                    {checkSupabaseStatus().isAvailable ? (
+                      <span className="text-green-400 font-bold uppercase">SUPABASE CLOUD</span>
                     ) : (
                       <span className="text-amber-500 font-bold uppercase">LOCAL LEDGER</span>
                     )}
@@ -821,6 +835,144 @@ export default function AdminPortal({ onClose }: { onClose: () => void }) {
                         </div>
                       </div>
                     ))}
+                  </div>
+
+                </div>
+              )}
+
+              {/* TAB 3: SUPABASE CONFIGURATION INSTRUCTIONS */}
+              {currentTab === "supabase" && (
+                <div className="flex-1 p-6 space-y-6 overflow-y-auto font-sans">
+                  
+                  <div className="flex items-center justify-between pb-4 border-b border-[#323436]">
+                    <div>
+                      <h4 className="font-heading font-bold text-sm text-white uppercase tracking-wider flex items-center space-x-2">
+                        <Database className="w-4 h-4 text-[#A89E8D]" />
+                        <span>Supabase Central Integration Ledger</span>
+                      </h4>
+                      <p className="text-xs text-[#A89E8D]/60 mt-0.5">
+                        Configure and manage the secure database integration variables powering Muhlenbruch’s digital underwriting platform.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Active Credentials Section */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="bg-[#141618] border border-[#323436] p-5 space-y-3">
+                      <span className="block text-[9px] uppercase tracking-wider font-mono text-[#A89E8D]/60">
+                        Active Database Endpoint (VITE_SUPABASE_URL)
+                      </span>
+                      <div className="bg-[#0F1113] border border-[#323436]/50 p-3 font-mono text-xs text-white break-all select-all">
+                        https://dirmcrwhunmivvocuvlg.supabase.co
+                      </div>
+                      <p className="text-[10px] text-[#A89E8D]/50 leading-relaxed">
+                        Injected through project credentials automatically. Routes data to your dedicated database cluster.
+                      </p>
+                    </div>
+
+                    <div className="bg-[#141618] border border-[#323436] p-5 space-y-3">
+                      <span className="block text-[9px] uppercase tracking-wider font-mono text-[#A89E8D]/60">
+                        Secure Client Pass-Key (VITE_SUPABASE_ANON_KEY)
+                      </span>
+                      <div className="bg-[#0F1113] border border-[#323436]/50 p-3 font-mono text-xs text-amber-400 break-all select-all">
+                        sb_publishable_OjxbHVVyRh69fJruxdSOyA_Pkam8imj
+                      </div>
+                      <p className="text-[10px] text-[#A89E8D]/50 leading-relaxed">
+                        Public Client API publishable key. Authenticates standard operations under Row Level Security mandates.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* PostgreSQL Schema Guide */}
+                  <div className="bg-[#141618] border border-[#323436] p-5 space-y-4">
+                    <div className="flex items-center justify-between pb-2 border-b border-[#323436]">
+                      <span className="text-xs font-heading font-bold text-white uppercase tracking-wider">
+                        Step-by-Step SQL Database Setup Schema
+                      </span>
+                      <button
+                        onClick={() => {
+                          const sqlCode = `create table contacts (
+  id bigint generated always as identity primary key,
+  name text not null,
+  email text not null,
+  phone text,
+  coverage_type text,
+  priority text,
+  subject text,
+  message text,
+  request_session boolean default true,
+  transmission_hash text,
+  status text default 'Unread',
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+alter table contacts enable row level security;
+create policy "Allow public inserts" on contacts for insert with check (true);
+create policy "Allow public select" on contacts for select using (true);
+create policy "Allow public update" on contacts for update using (true);
+create policy "Allow public delete" on contacts for delete using (true);
+
+create table admins (
+  uid text primary key,
+  name text not null,
+  email text not null,
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null,
+  role text default 'Admin'
+);
+
+alter table admins enable row level security;
+create policy "Allow admins select" on admins for select using (true);
+create policy "Allow admins insert/update" on admins for all using (true);`;
+                          navigator.clipboard.writeText(sqlCode);
+                        }}
+                        className="px-3 py-1 bg-[#A89E8D] hover:bg-[#F4F1EA] text-[#0F1113] transition-colors cursor-pointer text-[9px] uppercase font-mono font-bold"
+                      >
+                        Copy SQL Script
+                      </button>
+                    </div>
+
+                    <p className="text-xs text-[#A89E8D] leading-relaxed">
+                      To activate complete cloud synchronization for contact inquiries and admin registries, execute the SQL script below in your <strong>Supabase SQL Editor</strong>:
+                    </p>
+
+                    <div className="bg-[#0F1113] border border-[#323436] p-4 rounded-none font-mono text-[10px] text-white/90 overflow-x-auto max-h-60 space-y-1">
+                      <div><span className="text-emerald-500">-- Create contacts database schema</span></div>
+                      <div><span className="text-amber-500">create table</span> <span className="text-blue-400">contacts</span> (</div>
+                      <div className="pl-4">id <span className="text-amber-500">bigint generated always as identity primary key</span>,</div>
+                      <div className="pl-4">name <span className="text-amber-500">text not null</span>,</div>
+                      <div className="pl-4">email <span className="text-amber-500">text not null</span>,</div>
+                      <div className="pl-4">phone <span className="text-amber-500">text</span>,</div>
+                      <div className="pl-4">coverage_type <span className="text-amber-500">text</span>,</div>
+                      <div className="pl-4">priority <span className="text-amber-500">text</span>,</div>
+                      <div className="pl-4">subject <span className="text-amber-500">text</span>,</div>
+                      <div className="pl-4">message <span className="text-amber-500">text</span>,</div>
+                      <div className="pl-4">request_session <span className="text-amber-500">boolean default true</span>,</div>
+                      <div className="pl-4">transmission_hash <span className="text-amber-500">text</span>,</div>
+                      <div className="pl-4">status <span className="text-amber-500">text default 'Unread'</span>,</div>
+                      <div className="pl-4">created_at <span className="text-amber-500">timestamp with time zone default timezone('utc'::text, now()) not null</span></div>
+                      <div>);</div>
+                      <div className="mt-2"><span className="text-emerald-500">-- Enable Row Level Security (RLS)</span></div>
+                      <div><span className="text-amber-500">alter table</span> contacts <span className="text-amber-500">enable row level security</span>;</div>
+                      <div className="mt-2"><span className="text-emerald-500">-- Setup permissive policies for standard operation</span></div>
+                      <div><span className="text-amber-500">create policy</span> <span className="text-white">"Allow public inserts"</span> <span className="text-amber-500">on</span> contacts <span className="text-amber-500">for insert with check</span> (<span className="text-blue-400">true</span>);</div>
+                      <div><span className="text-amber-500">create policy</span> <span className="text-white">"Allow select"</span> <span className="text-amber-500">on</span> contacts <span className="text-amber-500">for select using</span> (<span className="text-blue-400">true</span>);</div>
+                      <div><span className="text-amber-500">create policy</span> <span className="text-white">"Allow update"</span> <span className="text-amber-500">on</span> contacts <span className="text-amber-500">for update using</span> (<span className="text-blue-400">true</span>);</div>
+                      <div><span className="text-amber-500">create policy</span> <span className="text-white">"Allow delete"</span> <span className="text-amber-500">on</span> contacts <span className="text-amber-500">for delete using</span> (<span className="text-blue-400">true</span>);</div>
+                      
+                      <div className="mt-4"><span className="text-emerald-500">-- Create administrators reference schema</span></div>
+                      <div><span className="text-amber-500">create table</span> <span className="text-blue-400">admins</span> (</div>
+                      <div className="pl-4">uid <span className="text-amber-500">text primary key</span>,</div>
+                      <div className="pl-4">name <span className="text-amber-500">text not null</span>,</div>
+                      <div className="pl-4">email <span className="text-amber-500">text not null</span>,</div>
+                      <div className="pl-4">created_at <span className="text-amber-500">timestamp with time zone default timezone('utc'::text, now()) not null</span>,</div>
+                      <div className="pl-4">role <span className="text-amber-500">text default 'Admin'</span></div>
+                      <div>);</div>
+                      <div className="mt-2"><span className="text-emerald-500">-- Enable Row Level Security (RLS)</span></div>
+                      <div><span className="text-amber-500">alter table</span> admins <span className="text-amber-500">enable row level security</span>;</div>
+                      <div className="mt-2"><span className="text-emerald-500">-- RLS policies for admin registration</span></div>
+                      <div><span className="text-amber-500">create policy</span> <span className="text-white">"Allow select on admins"</span> <span className="text-amber-500">on</span> admins <span className="text-amber-500">for select using</span> (<span className="text-blue-400">true</span>);</div>
+                      <div><span className="text-amber-500">create policy</span> <span className="text-white">"Allow all on admins"</span> <span className="text-amber-500">on</span> admins <span className="text-amber-500">for all using</span> (<span className="text-blue-400">true</span>);</div>
+                    </div>
                   </div>
 
                 </div>

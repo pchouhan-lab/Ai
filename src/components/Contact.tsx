@@ -4,7 +4,7 @@ import {
   ShieldCheck, Send, Mail, Phone, MapPin, Clock, 
   Lock, Globe, Shield, FileText, ArrowRight, CheckCircle2 
 } from "lucide-react";
-import { saveContactMessage, checkFirebaseStatus } from "../lib/firebase";
+import { saveContactMessage, checkSupabaseStatus } from "../lib/supabase";
 
 export default function Contact() {
   const [name, setName] = useState("");
@@ -226,10 +226,10 @@ export default function Contact() {
                     </span>
                   </div>
 
-                  {!checkFirebaseStatus().isAvailable && (
+                  {!checkSupabaseStatus().isAvailable && (
                     <div className="p-3 bg-amber-950/25 border border-amber-800/40 text-[#A89E8D] text-[11px] font-sans leading-relaxed">
                       <span className="font-bold text-white uppercase block mb-1">Local Secure Ledger Mode</span>
-                      Your Firebase project requires manual Firestore database setup or Google Cloud billing activation. This gateway is running on our high-performance client storage, allowing full interactive testing.
+                      Your Supabase database table structures require manual setup. This gateway is running on our high-performance client storage, allowing full interactive testing.
                     </div>
                   )}
 
@@ -465,8 +465,8 @@ export default function Contact() {
                       </div>
                       <div className="flex justify-between">
                         <span className="text-[#A89E8D]/60">STORAGE TARGET:</span>
-                        <span className={`font-bold uppercase ${checkFirebaseStatus().isAvailable ? "text-green-400" : "text-amber-500 animate-pulse"}`}>
-                          {checkFirebaseStatus().isAvailable ? "CLOUD FIRESTORE LEDGER" : "OFFLINE SECURE VAULT (FALLBACK)"}
+                        <span className={`font-bold uppercase ${checkSupabaseStatus().isAvailable ? "text-green-400" : "text-amber-500 animate-pulse"}`}>
+                          {checkSupabaseStatus().isAvailable ? "SUPABASE CLOUD LEDGER" : "OFFLINE SECURE VAULT (FALLBACK)"}
                         </span>
                       </div>
                       <div className="flex justify-between">
